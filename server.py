@@ -55,13 +55,15 @@ class Server:
             #print('address', address)
             if message['msg_type'] == 'HELLO':
                 self.send_msg(connections,'HELLO_ACK',message['sequence_number'],message['session_id'])
+                continue
+            elif message['msg_type'] == 'DATA_REQUEST':
+                self.send_data(connections, 'DATA_RESPONSE', DATA, message['sequence_number'], message['session_id'])
+                continue
 
-                if self.receive_msg(connections)['msg_type'] == 'DATA_REQUEST':
-                    self.send_data(connections, 'DATA_RESPONSE', DATA, message['sequence_number'], message['session_id'])
-                if self.receive_msg(connections)['msg_type'] == 'CLOSE':
-                    print('connection is closed')
-                    connections.close()
-                    break
+            elif self.receive_msg(connections)['msg_type'] == 'CLOSE':
+                print('connection is closed')
+                connections.close()
+                break
 
         print('connections ', connections)
         print('address ', address)

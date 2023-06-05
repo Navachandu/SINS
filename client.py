@@ -24,9 +24,7 @@ class Client:
 
 
     def receive_msg(self):
-        print('entered receive_msg function')
         message = self.client.recv(HEADER)
-        print('asf',message.decode(FORMAT))
         jsonmsg = json.loads(message.decode(FORMAT))
         print('received msg',jsonmsg)
         return jsonmsg
@@ -39,14 +37,25 @@ class Client:
             message = self.receive_msg()
             if message['msg_type'] == 'HELLO_ACK':
                 sequence_number+=1
+                break
+            else:
+                sequence_number -= 1
+                continue
+        start_time = time.time()
+        while True:
+            internal_time=time.time()
+            self.send_msg(CLIENT_MESSAGES[sequence_number - 1], str(sequence_number), str(session_id))
+            message = self.receive_msg()
+            if message['msg_type'] == 'DATA_RESPONSE':
+                sequence_number += 1
+                print(message)
+            if time.time()-internal_time<5 and time.time()-start_time<1800:
+                time.sleep(5-(time.time()-internal_time))
+                sequence_number -= 1
+                continue
+            else:
                 self.send_msg(CLIENT_MESSAGES[sequence_number - 1], str(sequence_number), str(session_id))
-                message = self.receive_msg()
-                if message['msg_type'] == 'DATA_RESPONSE':
-                    sequence_number += 1
-                    print('received data response')
-                    print(message)
-                    time.sleep(10)
-                    self.send_msg(CLIENT_MESSAGES[sequence_number - 1], str(sequence_number), str(session_id))
+
 
 
 
