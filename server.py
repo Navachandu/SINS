@@ -1,7 +1,7 @@
 import socket
 import json
 import hashlib
-from comm_var import PORT, HEADER, FORMAT, DATA, SERVER_LOGIN
+from comm_var import PORT, HEADER, FORMAT, DATA, SERVER_LOGIN,CHALLENGE
 import threading
 
 
@@ -21,6 +21,7 @@ class Server:
             connections_list = []
             while True:
                 connections, address = self.server.accept()
+                print('connections',connections)
                 print('address ', address)
                 clients = threading.Thread(target=self.client_handling, args=(connections, address))
                 clients.start()
@@ -33,7 +34,7 @@ class Server:
     def receive_msg(self, connections):
         try:
             message = connections.recv(HEADER)
-            print('received message', message)
+            #print('received message', message)
             jsonmsg = json.loads(message.decode(FORMAT))
             return jsonmsg
         except Exception as e:
@@ -58,45 +59,42 @@ class Server:
                 }
 
             JSONmsg = json.dumps(message).encode(FORMAT)
-            print('sent messages', JSONmsg)
+            #print('sent messages', JSONmsg)
             client_socket.send(JSONmsg)
         except Exception as e:
             print('send_msg error', e)
 
     def client_handling(self, connections, address):
         try:
+
+            message = self.receive_msg(connections)  # received username
+            print('rtcrtfc',message)
+            user = self.hashing.update(bytes(message['username'], 'utf-8'))
+            enc_user = self.hashing.hexdigest()
+            for value in SERVER_LOGIN.keys():
+                if value == enc_user:
+                    print('USER NAME MATCHED')
+                    self.send_msg(connections, CHALLENGE, None, None, None, None)
+                    cha_res = SERVER_LOGIN[enc_user] + CHALLENGE
+                    message = self.receive_msg(connections)
+                    print('mess',message)
+                    if message['msg_type'] == cha_res:
+                        print('YOU ARE AUTHENTICATED')
+                        self.send_msg(connections, 'AUTHENTICATED', None, None, None, None)
+
+                    else:
+                        print('WRONG PASSWORD')
+                        self.send_msg(connections, 'WRONG PASSWORD', None, None, None, None)
+                        connections.close()
             while True:
                 message = self.receive_msg(connections)
-                # print('address', address)
                 if message['msg_type'] == 'HELLO':
-                    print('username', message['username'])
-                    #print('bytes', bytes(message['username']))
-                    user = self.hashing.update(bytes(message['username'], 'utf-8'))
-                    print('user', user)
-                    enc_user = self.hashing.hexdigest()
-                    print('enc_user', enc_user)
-
-                    length = 0
-                    print('before for loop')
-                    for value in SERVER_LOGIN.keys():
-                        print('value', value)
-                        print('enc', enc_user)
-                        if value == enc_user:
-                            print('user matched')
-                            self.send_msg(connections, 'HELLO_ACK', message['sequence_number'], message['session_id'],
-                                          None, SERVER_LOGIN[value])
-                        elif length < len(SERVER_LOGIN)-1:
-                            length += 1
-                            print(length)
-                            continue
-                        else:
-                            self.send_msg(connections, 'INVALID_USER', message['sequence_number'], message['session_id'],
-                                          None, SERVER_LOGIN[value])
-                            print('INVALIED USER')
-                            connections.close()
+                    self.send_msg(connections, 'HELLO_ACK', message['sequence_number'], message['session_id'],
+                                  None, SERVER_LOGIN[value])
 
                 elif message['msg_type'] == 'DATA_REQUEST':
                     self.send_msg(connections, 'DATA_RESPONSE', message['sequence_number'], message['session_id'], DATA)
+                    print(message)
                     continue
 
                 elif self.receive_msg(connections)['msg_type'] == 'CLOSE':
@@ -107,7 +105,7 @@ class Server:
             print('connections ', connections)
             print('address ', address)
         except Exception as e:
-            print('client handling error', e)
+            print('Connection ')
 
 
 p = Server()
