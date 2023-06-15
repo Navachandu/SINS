@@ -34,7 +34,6 @@ class Server:
     def receive_msg(self, connections):
         try:
             message = connections.recv(HEADER)
-            #print('received message', message)
             jsonmsg = json.loads(message.decode(FORMAT))
             return jsonmsg
         except Exception as e:
@@ -68,7 +67,6 @@ class Server:
         try:
 
             message = self.receive_msg(connections)  # received username
-            print('rtcrtfc',message)
             user = self.hashing.update(bytes(message['username'], 'utf-8'))
             enc_user = self.hashing.hexdigest()
             for value in SERVER_LOGIN.keys():
@@ -77,7 +75,7 @@ class Server:
                     self.send_msg(connections, CHALLENGE, None, None, None, None)
                     cha_res = SERVER_LOGIN[enc_user] + CHALLENGE
                     message = self.receive_msg(connections)
-                    print('mess',message)
+                   # print('mess',message)
                     if message['msg_type'] == cha_res:
                         print('YOU ARE AUTHENTICATED')
                         self.send_msg(connections, 'AUTHENTICATED', None, None, None, None)

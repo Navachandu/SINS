@@ -6,7 +6,7 @@ from comm_var import PORT, HEADER, FORMAT, CLIENT_MESSAGES
 import time
 
 class Client:
-    SERVER = '141.26.188.214'
+    SERVER = '192.168.0.152'
     client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     client.connect((SERVER, PORT))
     print('Server Connection is established')
@@ -45,8 +45,6 @@ class Client:
     def server_handling(self):
         try:
 
-            session_id = random.randint(1, 100)
-            sequence_number = 1
 
             username = str(input('enter username: '))
             password = str(input('enter password: '))
@@ -69,35 +67,32 @@ class Client:
 
 
             '''AFTER AUTHENTICATED'''
-
-            print('before sending message')
-            print('sequence_number',sequence_number)
-            self.send_msg(CLIENT_MESSAGES[sequence_number - 1], str(sequence_number), str(session_id), username)
-            print(CLIENT_MESSAGES[sequence_number - 1])
-
-            message = self.receive_msg()
-
-            if message['msg_type'] == 'HELLO_ACK':
-                sequence_number += 1
-                print('sequence_number',sequence_number)
-
-
-            start_time = time.time()
             while True:
-                print('inside while')
-                internal_time = time.time()
-                self.send_msg(CLIENT_MESSAGES[sequence_number - 1], str(sequence_number), str(session_id))
-                print(CLIENT_MESSAGES[sequence_number - 1])
+
+                session_id = random.randint(1, 100)
+                sequence_number = 1
+
+                self.send_msg(CLIENT_MESSAGES[sequence_number - 1], str(sequence_number), str(session_id), username)
+
                 message = self.receive_msg()
-                if message['msg_type'] == 'DATA_RESPONSE':
+
+                if message['msg_type'] == 'HELLO_ACK':
                     sequence_number += 1
-                    print(message)
-                if time.time()-internal_time < 5 and time.time()-start_time < 1800 :
-                    time.sleep(5-(time.time()-internal_time))
-                    sequence_number -= 1
-                    continue
-                else:
-                    self.send_msg(CLIENT_MESSAGES[sequence_number - 1], str(sequence_number), str(session_id))
+
+                start_time = time.time()
+                while True:
+                    internal_time = time.time()
+                    self.send_msg(CLIENT_MESSAGES[1], str(sequence_number), str(session_id))
+                    message = self.receive_msg()
+                    if message['msg_type'] == 'DATA_RESPONSE':
+                        sequence_number += 1
+                    if time.time()-internal_time < 5 and time.time()-start_time < 1800 :
+                        time.sleep(5-(time.time()-internal_time))
+                        if sequence_number>10:
+                            break
+                        continue
+                    else:
+                        self.send_msg(CLIENT_MESSAGES[sequence_number - 1], str(sequence_number), str(session_id))
         except Exception as e:
             print('Connection is closed because of wrong login')
 
